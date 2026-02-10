@@ -58,7 +58,7 @@ st.title("College Gym Footfall Prediction Dashboard")
 df = load_data()
 
 st.subheader("Data Overview")
-st.write(df.head())
+st.write(df.head(15))
 
 st.subheader("Basic Visualizations")
 
