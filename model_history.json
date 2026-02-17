@@ -1,9 +1,0 @@
-{"model_name": "RandomForestRegressor", "rmse": 9.555870366983228, "timestamp": "20260208_121742", "model_path": "models/model_20260208_121742.pkl"}
-{"model_name": "RandomForestRegressor", "rmse": 8.919528776008658, "timestamp": "20260208_121846", "model_path": "models/model_20260208_121846.pkl"}
-{"model_name": "RandomForestRegressor", "rmse": 8.210381153961931, "timestamp": "20260208_123239", "model_path": "models/model_20260208_123239.pkl"}
-{"model_name": "RandomForestRegressor", "rmse": 9.555870366983228, "timestamp": "20260208_123415", "model_path": "models/model_20260208_123415.pkl"}
-{"model_name": "RandomForestRegressor", "rmse": 8.919528776008658, "timestamp": "20260208_123454", "model_path": "models/model_20260208_123454.pkl"}
-{"model_name": "RandomForestRegressor", "rmse": 9.555870366983228, "timestamp": "20260210_230451", "model_path": "models/model_20260210_230451.pkl"}
-{"model_name": "RandomForestRegressor", "rmse": 8.919528776008658, "timestamp": "20260210_230454", "model_path": "models/model_20260210_230454.pkl"}
-{"model_name": "RandomForestRegressor", "rmse": 8.919528776008658, "timestamp": "20260210_230651", "model_path": "models/model_20260210_230651.pkl"}
-{"model_name": "RandomForestRegressor", "rmse": 8.919528776008658, "timestamp": "20260210_230707", "model_path": "models/model_20260210_230707.pkl"}
