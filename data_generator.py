@@ -2,13 +2,23 @@
 import sqlite3
 import numpy as np
 import pandas as pd
+from datetime import datetime, timedelta
+
+
+def drift_factor(day_index, num_days):
+    """
+    Return a factor between 1.0 and 1.2 that increases linearly
+    from the start of the dataset to the end, to simulate data drift.
+    """
+    progress = day_index / max(1, num_days - 1)
+    return 1.0 + 0.2 * progress  # 1.0 (oldest) -> 1.2 (newest)
+
 
 def generate_data(num_days=60):
     np.random.seed(42)
     rows = []
 
-    # days 0 .. num_days-1
-    for day in range(num_days):
+    for day in range(num_days):  # days 0 .. num_days-1
         day_of_week = day % 7  # 0-6
         is_weekend = 1 if day_of_week in [5, 6] else 0
 
@@ -18,6 +28,9 @@ def generate_data(num_days=60):
         is_new_term = 1 if day < 7 else 0
         special_event = 1 if day in [10, 25] else 0
         sports_or_challenge = 1 if day in [15, 40] else 0
+
+        # drift factor for this day (later days -> higher occupancy)
+        day_drift = drift_factor(day, num_days)
 
         for hour in range(6, 23):  # 6 to 22
             # temperature: colder at morning/evening, hotter mid-day
@@ -76,6 +89,9 @@ def generate_data(num_days=60):
             # noise
             occ += np.random.normal(0, 8)
 
+            # APPLY DATA DRIFT: later days get slightly higher occupancy
+            occ *= day_drift
+
             # clip 0-100
             occ = max(0, min(100, occ))
 
@@ -97,10 +113,12 @@ def generate_data(num_days=60):
     df = pd.DataFrame(rows)
     return df
 
+
 def save_to_sqlite(df, db_path="project.db", table_name="gym_footfall"):
     conn = sqlite3.connect(db_path)
     df.to_sql(table_name, conn, if_exists="replace", index=False)
     conn.close()
+
 
 if __name__ == "__main__":
     df = generate_data(num_days=60)
