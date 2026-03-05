@@ -9,6 +9,7 @@ def generate_data(num_days=60):
 
     # days 0 .. num_days-1
     for day in range(num_days):
+        day_base_temp = np.random.normal(28, 3)
         day_of_week = day % 7  # 0-6
         is_weekend = 1 if day_of_week in [5, 6] else 0
 
@@ -18,15 +19,24 @@ def generate_data(num_days=60):
         is_new_term = 1 if day < 7 else 0
         special_event = 1 if day in [10, 25] else 0
         sports_or_challenge = 1 if day in [15, 40] else 0
+        day_base_temp = np.random.normal(28, 3)
 
         for hour in range(6, 23):  # 6 to 22
-            # temperature: colder at morning/evening, hotter mid-day
-            base_temp = np.random.normal(28, 4)
+            # temperature pattern over the day: cool morning, hot afternoon, cooler evening
             if hour < 9:
-                base_temp -= 4
-            elif hour > 19:
-                base_temp -= 2
-            temperature_c = max(10, min(40, base_temp))
+                temp = day_base_temp - 4
+            elif 9 <= hour <= 16:
+                temp = day_base_temp + 2
+            elif 17 <= hour <= 20:
+                temp = day_base_temp
+            else:  # 21-22
+                temp = day_base_temp - 2
+
+            # small random noise per hour
+            temp += np.random.normal(0, 1)
+
+            temperature_c = max(10, min(40, temp))
+
 
             # previous_day_occupancy (fake, will refine later)
             previous_day_occ = np.random.uniform(10, 80)
