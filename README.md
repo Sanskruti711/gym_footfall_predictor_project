@@ -67,3 +67,5 @@ The app:
 - Lets you choose date/time and context (exam period, holiday, temperature, etc.).
 - Displays the predicted gym occupancy for that hour and a simple crowd‑level label.
 ```
+
+The generator also simulates simple data drift: later days have slightly higher average occupancy (up to about +20%) than earlier days, emulating the gym becoming more crowded over time.
