@@ -115,7 +115,7 @@ def generate_data(num_days=60):
     return df
 
 
-def save_to_sqlite(df, db_path="project.db", table_name="gym_footfall"):
+def save_to_sqlite(df, db_path="data/project.db", table_name="gym_footfall"):
     conn = sqlite3.connect(db_path)
     df.to_sql(table_name, conn, if_exists="replace", index=False)
     conn.close()
