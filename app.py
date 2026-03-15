@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import joblib
 
-DB_PATH = "project.db"
+DB_PATH = "data/project.db"
 TABLE_NAME = "gym_footfall"
 
 FEATURE_COLS = [
