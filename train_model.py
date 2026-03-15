@@ -16,7 +16,7 @@ from preprocessing import preprocess_df, FEATURE_COLS, TARGET_COL
 
 import joblib
 
-DB_PATH = "project.db"
+DB_PATH = "data/project.db"
 TABLE_NAME = "gym_footfall"
 
 
