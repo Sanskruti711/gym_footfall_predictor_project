@@ -7,8 +7,6 @@ from glob import glob
 import numpy as np
 import pandas as pd
 import streamlit as st
-import matplotlib.pyplot as plt
-import seaborn as sns
 import joblib
 import plotly.express as px
 
@@ -27,6 +25,12 @@ st.markdown(
     footer {visibility: hidden;}
     header {visibility: hidden;}
     .block-container {padding-top: 1rem; padding-bottom: 1rem;}
+    .metric-container {
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+        background-color: #111827;
+        border: 1px solid #1f2937;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -48,7 +52,6 @@ FEATURE_COLS = [
     "is_new_term",
     "previous_day_occupancy",
 ]
-
 
 # ---- HELPERS ----
 @st.cache_data
@@ -78,7 +81,6 @@ def load_latest_metrics():
     if last_line:
         return json.loads(last_line)
     return None
-
 
 # ---- SIDEBAR ----
 with st.sidebar:
@@ -118,7 +120,6 @@ if exam_filter != "Both":
     flag = 1 if exam_filter == "Exam" else 0
     df_vis = df_vis[df_vis["exam_period"] == flag]
 
-
 # ---- HOME PAGE ----
 if page == "Home":
     st.markdown("### 🏠 Home · Gym Descriptive Analytics")
@@ -129,10 +130,22 @@ if page == "Home":
     median_occ = df_vis["occupancy_percentage"].median()
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total Sessions", f"{total_sessions:,}")
-    c2.metric("Peak Occupancy", f"{peak_occ:.0f} %")
-    c3.metric("Avg Occupancy", f"{avg_occ:.1f} %")
-    c4.metric("Median Occupancy", f"{median_occ:.1f} %")
+    with c1:
+        st.markdown('<div class="metric-container">', unsafe_allow_html=True)
+        st.metric("Total Sessions", f"{total_sessions:,}")
+        st.markdown('</div>', unsafe_allow_html=True)
+    with c2:
+        st.markdown('<div class="metric-container">', unsafe_allow_html=True)
+        st.metric("Peak Occupancy", f"{peak_occ:.0f} %")
+        st.markdown('</div>', unsafe_allow_html=True)
+    with c3:
+        st.markdown('<div class="metric-container">', unsafe_allow_html=True)
+        st.metric("Avg Occupancy", f"{avg_occ:.1f} %")
+        st.markdown('</div>', unsafe_allow_html=True)
+    with c4:
+        st.markdown('<div class="metric-container">', unsafe_allow_html=True)
+        st.metric("Median Occupancy", f"{median_occ:.1f} %")
+        st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("----")
 
@@ -151,9 +164,11 @@ if page == "Home":
             x="hour",
             y="occupancy_percentage",
             markers=True,
+            color_discrete_sequence=["#00C0F2"],
             labels={"hour": "Hour", "occupancy_percentage": "Avg occupancy %"},
             template="plotly_dark",
         )
+        fig_hour.update_traces(line=dict(width=3))
         st.plotly_chart(fig_hour, use_container_width=True)
 
     with right:
@@ -168,15 +183,20 @@ if page == "Home":
             df_day,
             x="day_of_week",
             y="occupancy_percentage",
-            labels={"day_of_week": "Day (0=Mon)", "occupancy_percentage": "Avg occupancy %"},
+            color="occupancy_percentage",
+            color_continuous_scale="Turbo",
+            labels={
+                "day_of_week": "Day (0=Mon)",
+                "occupancy_percentage": "Avg occupancy %",
+            },
             template="plotly_dark",
         )
+        fig_day.update_layout(coloraxis_showscale=False)
         st.plotly_chart(fig_day, use_container_width=True)
 
     st.markdown("----")
     st.subheader("Sample Data")
     st.dataframe(df_vis.head(20))
-
 
 # ---- FORECAST PAGE ----
 elif page == "Forecast":
@@ -263,11 +283,15 @@ elif page == "Forecast":
                 x="hour",
                 y="predicted_occupancy",
                 markers=True,
-                labels={"hour": "Hour", "predicted_occupancy": "Predicted occupancy %"},
+                color_discrete_sequence=["#F97316"],
+                labels={
+                    "hour": "Hour",
+                    "predicted_occupancy": "Predicted occupancy %",
+                },
                 template="plotly_dark",
             )
+            fig_fore.update_traces(line=dict(width=3))
             st.plotly_chart(fig_fore, use_container_width=True)
-
 
 # ---- MODEL INTELLIGENCE PAGE ----
 elif page == "Model Intelligence":
@@ -287,7 +311,6 @@ elif page == "Model Intelligence":
         st.markdown("#### Model History")
 
         if metrics:
-            # load full history
             rows = []
             with open("model_history.json", "r") as f:
                 for line in f:
