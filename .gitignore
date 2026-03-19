@@ -16,8 +16,12 @@ venv/
 # Streamlit
 .streamlit/
 
-# SQLite temp
+# SQLite
 *.db-journal
+data/project.db
 
-data/
-project.db
+# Generated model files
+models/*.pkl
+
+# Stale files
+model_history.json

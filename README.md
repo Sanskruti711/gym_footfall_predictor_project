@@ -1,71 +1,139 @@
-# College Gym Footfall Predictor
+# 🏋️ GymIQ — Smart Gym Footfall Predictor
 
-This project predicts hourly crowd levels (occupancy percentage) in a college gym using synthetic data stored in a SQLite database and traditional machine learning models. It demonstrates how to move from a basic model to a small, production‑like pipeline with SQL, Python scripts, model versioning, and a Streamlit dashboard.
+> A machine learning pipeline that predicts how crowded a college gym will be across four daily time slots, served through an animated Streamlit dashboard.
 
 ---
 
-## Data generation
+## 📌 Project Overview
 
-To (re)create the SQLite database with synthetic gym data:
+College gyms suffer from highly uneven footfall. Students arrive during peak hours, face overcrowding, and leave without training. **GymIQ** solves this by predicting crowd levels for any day, time slot, and set of conditions — so users can plan smarter visits.
+
+The system trains **5 regression models**, auto-selects the best performer, and displays predictions with an 80% confidence interval on a live gauge chart.
+
+---
+
+## 🗂️ Project Structure
+
+```
+gym_footfall_predictor_project/
+├── scripts/
+│   ├── data_generator.py      # Generate 365 days of synthetic footfall data
+│   ├── train_model.py         # Train 5 models, compare, save best
+│   └── retrain_model.py       # Append new data + trigger retrain
+├── dashboard/
+│   └── app.py                 # Streamlit dashboard (4 pages)
+├── data/
+│   └── project.db             # SQLite DB (gym_footfall + model_history tables)
+├── models/                    # Saved .pkl model files (timestamped)
+├── preprocessing.py           # Data preprocessing utilities
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## ⚙️ Setup & Installation
 
 ```bash
-python data_generator.py
-```
+# Clone the repository
+git clone https://github.com/Sanskruti711/gym_footfall_predictor_project
+cd gym_footfall_predictor_project
 
-This script:
-- Generates synthetic hourly occupancy data.
-- Stores it in `project.db` under the `gym_footfall` table.
+# Create and activate virtual environment
+python -m venv venv
+venv\Scripts\activate        # Windows
+source venv/bin/activate     # Mac/Linux
+
+# Install dependencies
+pip install -r requirements.txt
+```
 
 ---
 
-## Model training
+## 🚀 Running the Pipeline
 
-To train and save a model:
-
+### Step 1 — Generate Data
 ```bash
-python train_model.py
+python scripts/data_generator.py
 ```
+Generates **6,205 rows** of synthetic gym footfall data across 365 days and saves to `data/project.db`.
 
-This script:
-- Loads data from `project.db` (table `gym_footfall`).
-- Preprocesses it using `preprocess_df`.
-- Trains three models: `LinearRegression`, `DecisionTreeRegressor`, `RandomForestRegressor`.
-- Prints RMSE, MAE, and MAPE for each model.
-- Selects the best model based on RMSE.
-- Saves the best model into the `models/` folder.
-- Appends its metrics and metadata to `model_history.json`.
-
----
-
-## Model history and versioning
-
-Every time `train_model.py` is run, a new model is trained and saved into the `models/` folder, and a JSON line is appended to `model_history.json`. Each line looks like:
-
-```json
-{"model_name": "RandomForestRegressor", "rmse": 9.55, "mae": 7.67, "mape": 4140396.75, "timestamp": "20260222_192330", "model_path": "models/model_20260222_192330.pkl"}
-```
-
-This file acts as a simple model registry and lets you track:
-- Which model type was used.
-- When it was trained (`timestamp`).
-- Its performance metrics (RMSE, MAE, MAPE).
-- Where the corresponding `.pkl` file is stored.
-
----
-
-## Streamlit dashboard
-
-To run the interactive dashboard:
-
+### Step 2 — Train Models
 ```bash
-streamlit run app.py
+python scripts/train_model.py
+```
+Trains **5 models** with RandomizedSearchCV, evaluates on a chronological test split, prints a comparison table, and saves the best model as a timestamped `.pkl` file.
+
+### Step 3 — Launch Dashboard
+```bash
+streamlit run dashboard/app.py
 ```
 
-The app:
-- Loads the most recent model from the `models/` folder using `model_history.json`.
-- Shows current model info (file path, name, RMSE, timestamp).
-- Lets you choose date/time and context (exam period, holiday, temperature, etc.).
-- Displays the predicted gym occupancy for that hour and a simple crowd‑level label.
+### Retrain with New Data
+```bash
+python scripts/retrain_model.py --days 7
 ```
+Appends 7 new days to the DB and retrains automatically.
 
-The generator also simulates simple data drift: later days have slightly higher average occupancy (up to about +20%) than earlier days, emulating the gym becoming more crowded over time.
+---
+
+## 🤖 Models Compared
+
+| Model | Why Included |
+|---|---|
+| **XGBoost** ✅ | Industry-standard boosting; regularisation; typically best on tabular data |
+| **Ridge Regression** | Fast linear baseline; sanity check |
+| **GradientBoosting** | Sequential boosting; strong tabular performance |
+| **ExtraTrees** | More randomised than RF; often competitive |
+| **RandomForest** | Strong ensemble baseline; interpretable importances |
+
+The winner is selected automatically by lowest RMSE on the test set.
+
+---
+
+## 📊 Features Used (21 total)
+
+| Category | Features |
+|---|---|
+| Time | `day_of_week`, `is_weekend`, `time_block` |
+| Seasonal | `month`, `week_of_year`, `sin_month`, `cos_month`, `sin_week`, `cos_week` |
+| Events | `exam_period`, `is_pre_exam_week`, `is_new_year_jan`, `is_summer`, `special_event`, `is_holiday`, `sports_or_challenge`, `is_new_term` |
+| Context | `temperature_c`, `previous_day_occupancy`, `rolling_3day_avg` |
+
+**Key design decisions:**
+- **Circular encoding** (`sin`/`cos`) for month and week so the model understands Dec → Jan as continuous
+- **Chronological train/test split** (not random) to prevent future data leaking into training
+- **Lag features** computed from actual data, not random noise
+
+---
+
+## 📈 Dashboard Pages
+
+| Page | Description |
+|---|---|
+| **Welcome** | Today's crowd by time slot + best/worst slot recommendation |
+| **Plan Visit** | Prediction tool with animated gauge + 80% confidence interval |
+| **Trends** | Heatmap, exam vs normal comparison, daily crowd trend |
+| **Data & Model** | Dataset snapshot, 5-model comparison chart, feature importances, training history |
+
+---
+
+## 🔄 Data Drift Handling
+
+A `drift_factor()` function linearly increases base crowd by up to 15% over the dataset duration, simulating growing gym membership. The retrain pipeline appends real-position data (correct exam/holiday flags based on calendar position) and recomputes lag features from existing DB records before retraining.
+
+---
+
+## 📦 Tech Stack
+
+`Python` · `Streamlit` · `scikit-learn` · `XGBoost` · `pandas` · `numpy` · `Plotly` · `SQLite` · `joblib`
+
+---
+
+## 📄 Documentation
+
+Full technical documentation is available in `GymIQ_Technical_Documentation.docx`, covering data generation, feature engineering, model training rationale, evaluation metrics, and pipeline architecture.
+
+---
+
+*Sanskruti Sonawane · STSE203 · March 2026*
