@@ -1,7 +1,14 @@
 # scripts/train_model.py
+import subprocess, sys
+subprocess.run([sys.executable, "-m", "pip", "install", "xgboost"], check=True)
 import os
+import sys
 import sqlite3
 from datetime import datetime
+
+# Fix Windows terminal encoding (cp1252 can't handle Unicode arrows/emojis)
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 import numpy as np
 import pandas as pd
@@ -13,6 +20,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import RandomizedSearchCV
 from xgboost import XGBRegressor
+
+# Import preprocessing module (validates + cleans data before training)
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from preprocessing import preprocess_df
 
 DB_PATH    = "data/project.db"
 TABLE_NAME = "gym_footfall"
@@ -28,7 +40,7 @@ FEATURE_COLS = [
     # ── Seasonal / temporal ──
     "month",              # raw month (1-12)
     "week_of_year",       # raw week (1-52)
-    "sin_month",          # circular encoding — captures Dec→Jan continuity
+    "sin_month",          # circular encoding — captures Dec->Jan continuity
     "cos_month",
     "sin_week",           # circular encoding — week-level seasonality
     "cos_week",
@@ -185,6 +197,10 @@ def main():
 
     # 1. Load & validate -----------------------------------------------------
     df = load_data()
+    print(f"Raw rows loaded: {len(df):,}")
+
+    # Preprocess: validate columns, enforce types, clip outliers
+    df = preprocess_df(df)
 
     missing = [c for c in FEATURE_COLS if c not in df.columns]
     if missing:
@@ -205,7 +221,7 @@ def main():
     results = []  # list of (name, fitted_model, rmse, mape, params_str)
 
     for name, estimator, param_dist in build_candidates():
-        print(f"── Training {name} ──")
+        print(f"-- Training {name} ──")
 
         search = RandomizedSearchCV(
             estimator,
@@ -229,9 +245,9 @@ def main():
 
     # 3. Pick winner (lowest RMSE) ------------------------------------------
     results.sort(key=lambda x: x[2])
-    print("\n── Model comparison (sorted by RMSE) ──")
+    print("\n-- Model comparison (sorted by RMSE) --")
     for name, _, rmse, mape, _ in results:
-        winner_tag = " ✅ WINNER" if name == results[0][0] else ""
+        winner_tag = " << WINNER" if name == results[0][0] else ""
         print(f"   {name:<22} RMSE={rmse:.2f}  MAPE={mape:.2f}%{winner_tag}")
 
     best_name, best_model, best_rmse, best_mape, best_params = results[0]
@@ -262,7 +278,7 @@ def main():
     model_filename = f"model_{timestamp}.pkl"
     model_path     = os.path.join(MODELS_DIR, model_filename)
     joblib.dump(best_model, model_path)
-    print(f"Saved best model ({best_name}) → {model_path}")
+    print(f"Saved best model ({best_name}) --> {model_path}")
 
     # 7. Persist to history -------------------------------------------------
     record = {
@@ -281,7 +297,7 @@ def main():
         "all_model_rmses"    : str({n: round(r, 4) for n, _, r, _, _ in results}),
     }
     save_history(record)
-    print("History saved to DB → table 'model_history'")
+    print("History saved to DB -> table 'model_history'")
 
 
 if __name__ == "__main__":
